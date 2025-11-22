@@ -1,0 +1,490 @@
+#include <WiFi.h>
+#include <PubSubClient.h>
+#include <DHT.h>
+#include <ArduinoJson.h>
+
+// WiFi credentials - THAY ĐỔI THEO WIFI CỦA BẠN
+const char *ssid = "Luffy";           // Tên WiFi của bạn
+const char *password = "06022004";    // Mật khẩu WiFi của bạn
+
+// MQTT Broker
+const char *mqtt_broker = "broker.emqx.io";
+const char *mqtt_username = "tho";
+const char *mqtt_password = "1234567890";
+const int mqtt_port = 1883;
+
+// Topics
+const char *topic_led_control = "led_control";      // Nhận lệnh điều khiển LED
+const char *topic_fan_control = "fan_control";      // Nhận lệnh điều khiển Fan
+const char *topic_pump_control = "pump_control";    // Nhận lệnh điều khiển Pump
+const char *topic_buzzer_control = "buzzer_control";// Nhận lệnh điều khiển Buzzer
+const char *topic_fire_alarm = "fire_alarm";        // Gửi cảnh báo cháy
+const char *topic_gas_alarm = "gas_alarm";          // Gửi cảnh báo khí gas
+const char *topic_device_status = "device_status";  // Gửi trạng thái tất cả thiết bị
+const char *topic_sensors = "PBL3";                 // Gửi dữ liệu sensor
+const char *topic_device_control = "device_control"; // Nhận lệnh điều khiển từ web (JSON)
+const char *topic_device_states = "device_states";   // Gửi trạng thái thiết bị (JSON)
+
+// Device pins - KẾT NỐI RELAY MODULE
+#define LED_PIN 22     // LED onboard hoặc LED ngoài
+#define FAN_PIN 4     // Relay 1 - Fan
+#define PUMP_PIN 5    // Relay 2 - Pump
+#define BUZZER_PIN 23 // Buzzer
+
+// Cảm biến
+#define DHT_PIN 25
+#define DHT_TYPE DHT22
+DHT dht(DHT_PIN, DHT_TYPE);
+
+#define MQ_GAS_PIN 32  // Cảm biến khí gas MQ-2/MQ-5/MQ-9 (ADC)
+
+// Device states
+bool ledState = false;
+bool fanState = false;
+bool pumpState = false;
+bool buzzerState = false;
+bool fireAlarmActive = false;
+bool gasAlarmActive = false;
+
+// Sensor variables
+float temperature = 0.0;
+float humidity = 0.0;
+int gasValue = 0;
+unsigned long lastSensorRead = 0;
+const unsigned long sensorInterval = 2000; // Đọc cảm biến mỗi 2 giây
+
+// Ngưỡng cảnh báo khí gas (tuỳ chỉnh theo cảm biến)
+const int GAS_THRESHOLD = 1500; // Ngưỡng an toàn - điều chỉnh theo thực tế
+
+WiFiClient espClient;
+PubSubClient client(espClient);
+
+void setup() {
+  Serial.begin(115200);
+  
+  // Initialize device pins
+  pinMode(LED_PIN, OUTPUT);
+  pinMode(FAN_PIN, OUTPUT);
+  pinMode(PUMP_PIN, OUTPUT);
+  pinMode(BUZZER_PIN, OUTPUT);
+  pinMode(MQ_GAS_PIN, INPUT);
+  
+  // Set initial states (RELAY LOW = ON, HIGH = OFF)
+  digitalWrite(LED_PIN, LOW);     // LED OFF initially
+  digitalWrite(FAN_PIN, HIGH);    // Fan OFF initially (RELAY)
+  digitalWrite(PUMP_PIN, HIGH);   // Pump OFF initially (RELAY)
+  digitalWrite(BUZZER_PIN, LOW);  // Buzzer OFF initially
+  
+  // Initialize DHT sensor
+  dht.begin();
+  
+  Serial.println("Starting ESP32 Smart Pig Farm System with DHT22 & MQ Gas Sensor...");
+  Serial.println("DHT22 Sensor: Reading temperature and humidity");
+  Serial.println("MQ Gas Sensor: Monitoring gas levels");
+  
+  // Connect to WiFi
+  connectToWiFi();
+  
+  // Connect to MQTT broker
+  connectToMQTT();
+  
+  // Subscribe to control topics
+  client.subscribe(topic_led_control);
+  client.subscribe(topic_fan_control);
+  client.subscribe(topic_pump_control);
+  client.subscribe(topic_buzzer_control);
+  client.subscribe(topic_device_control); // Subscribe topic điều khiển từ web
+  Serial.println("Subscribed to all control topics");
+  
+  // Send initial device status
+  sendDeviceStatus();
+  publishDeviceState();
+}
+
+void connectToWiFi() {
+  WiFi.begin(ssid, password);
+  Serial.print("Connecting to WiFi");
+  
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  
+  Serial.println();
+  Serial.println("WiFi connected!");
+  Serial.print("IP address: ");
+  Serial.println(WiFi.localIP());
+}
+
+void connectToMQTT() {
+  client.setServer(mqtt_broker, mqtt_port);
+  client.setCallback(callback);
+  
+  while (!client.connected()) {
+    String client_id = "esp32-pig-farm-client-";
+    client_id += String(WiFi.macAddress());
+    
+    Serial.printf("Connecting to MQTT broker as %s...\n", client_id.c_str());
+    
+    if (client.connect(client_id.c_str(), mqtt_username, mqtt_password)) {
+      Serial.println("Connected to MQTT broker!");
+    } else {
+      Serial.print("Failed to connect to MQTT broker. State: ");
+      Serial.print(client.state());
+      Serial.println(" Retrying in 2 seconds...");
+      delay(2000);
+    }
+  }
+}
+
+void readDHTSensor() {
+  // Đọc nhiệt độ và độ ẩm từ cảm biến DHT22
+  float newTemperature = dht.readTemperature();
+  float newHumidity = dht.readHumidity();
+  
+  // Kiểm tra nếu đọc thành công
+  if (isnan(newTemperature) || isnan(newHumidity)) {
+    Serial.println("Failed to read from DHT sensor!");
+    return;
+  }
+  
+  // Cập nhật giá trị
+  temperature = newTemperature;
+  humidity = newHumidity;
+  
+  Serial.print("DHT22 - Temperature: ");
+  Serial.print(temperature);
+  Serial.print(" °C, Humidity: ");
+  Serial.print(humidity);
+  Serial.println(" %");
+}
+
+void readGasSensor() {
+  // Đọc giá trị từ cảm biến khí gas (ADC)
+  int newGasValue = analogRead(MQ_GAS_PIN);
+  gasValue = newGasValue;
+  
+  Serial.print("MQ Gas Sensor - Value: ");
+  Serial.println(gasValue);
+  
+  // Kiểm tra ngưỡng cảnh báo khí gas
+  checkGasAlarm(gasValue);
+}
+
+void checkGasAlarm(int gasLevel) {
+  if (gasLevel > GAS_THRESHOLD && !gasAlarmActive) {
+    // Kích hoạt cảnh báo khí gas
+    gasAlarmActive = true;
+    client.publish(topic_gas_alarm, "DANGER", false);
+    Serial.println("GAS ALARM ACTIVATED! Gas Level: " + String(gasLevel));
+    
+    // Tự động bật quạt thông gió, bơm nước và còi
+    setFan(true);
+    setPump(true);
+    setBuzzer(true);
+    
+  } else if (gasLevel <= GAS_THRESHOLD && gasAlarmActive) {
+    // Tắt cảnh báo khí gas
+    gasAlarmActive = false;
+    client.publish(topic_gas_alarm, "NORMAL", false);
+    Serial.println("Gas alarm deactivated. Gas level normal.");
+    
+    // Tự động tắt các thiết bị (giữ nguyên trạng thái quạt vì có thể đang điều khiển nhiệt độ)
+    setBuzzer(false);
+    // Không tự động tắt bơm và quạt vì có thể đang được điều khiển bởi nhiệt độ
+  }
+}
+
+void checkFireAlarm(float temperature) {
+  // Kiểm tra nhiệt độ để phát hiện cháy
+  if (temperature > 45.0 && !fireAlarmActive) {
+    fireAlarmActive = true;
+    client.publish(topic_fire_alarm, "ACTIVE", false);
+    Serial.println("FIRE ALARM ACTIVATED! Temperature: " + String(temperature));
+    
+    // Tự động kích hoạt các thiết bị an toàn
+    setFan(true);  // Bật quạt để thông gió
+    setBuzzer(true); // Bật còi báo động
+    
+  } else if (temperature <= 40.0 && fireAlarmActive) {
+    fireAlarmActive = false;
+    client.publish(topic_fire_alarm, "NORMAL", false);
+    Serial.println("Fire alarm deactivated. Temperature normal.");
+    
+    // Tự động tắt còi, nhưng giữ nguyên quạt (có thể đang điều khiển tự động)
+    setBuzzer(false);
+  }
+  
+  // TỰ ĐỘNG ĐIỀU KHIỂN QUẠT THEO NHIỆT ĐỘ (40°C)
+  if (temperature > 40.0 && !fanState && !gasAlarmActive) {
+    // Nhiệt độ > 40°C và quạt đang tắt -> BẬT quạt
+    setFan(true);
+    Serial.println("Auto FAN ON - Temperature: " + String(temperature));
+  } else if (temperature <= 40.0 && fanState && !gasAlarmActive && !fireAlarmActive) {
+    // Nhiệt độ ≤ 40°C và quạt đang bật -> TẮT quạt (trừ khi có cảnh báo)
+    setFan(false);
+    Serial.println("Auto FAN OFF - Temperature: " + String(temperature));
+  }
+}
+
+void callback(char *topic, byte *payload, unsigned int length) {
+  Serial.print("Message received on topic: ");
+  Serial.println(topic);
+  Serial.print("Message: ");
+  
+  String message = "";
+  for (int i = 0; i < length; i++) {
+    message += (char) payload[i];
+  }
+  Serial.println(message);
+  
+  // Process control commands
+  if (String(topic) == topic_led_control) {
+    processLEDCommand(message);
+  } else if (String(topic) == topic_fan_control) {
+    processFanCommand(message);
+  } else if (String(topic) == topic_pump_control) {
+    processPumpCommand(message);
+  } else if (String(topic) == topic_buzzer_control) {
+    processBuzzerCommand(message);
+  } else if (String(topic) == topic_device_control) {
+    // Xử lý lệnh JSON từ web
+    processJSONCommand(message);
+  }
+  
+  Serial.println("-----------------------");
+}
+
+void processJSONCommand(String jsonString) {
+  Serial.println("Processing JSON command: " + jsonString);
+  
+  // Parse JSON
+  DynamicJsonDocument doc(256);
+  DeserializationError error = deserializeJson(doc, jsonString);
+  
+  if (error) {
+    Serial.print("JSON parsing failed: ");
+    Serial.println(error.c_str());
+    return;
+  }
+  
+  // Xử lý các lệnh điều khiển thiết bị
+  if (doc.containsKey("led")) {
+    setLED(doc["led"].as<bool>());
+  }
+  if (doc.containsKey("fan")) {
+    setFan(doc["fan"].as<bool>());
+  }
+  if (doc.containsKey("pump")) {
+    setPump(doc["pump"].as<bool>());
+  }
+  if (doc.containsKey("buzzer")) {
+    setBuzzer(doc["buzzer"].as<bool>());
+  }
+}
+
+void processBuzzerCommand(String command) {
+  Serial.println("Processing Buzzer command: " + command);
+  
+  if (command == "ON" || command == "on" || command == "1") {
+    setBuzzer(true);
+  } else if (command == "OFF" || command == "off" || command == "0") {
+    setBuzzer(false);
+  } else if (command == "ALARM") {
+    activateAlarmBuzzer();
+  } else if (command == "TEST") {
+    testBuzzer();
+  }
+}
+
+void setBuzzer(bool state) {
+  buzzerState = state;
+  digitalWrite(BUZZER_PIN, state ? HIGH : LOW);
+  Serial.println("Buzzer: " + String(state ? "ON" : "OFF"));
+  sendDeviceStatus();
+  publishDeviceState();
+}
+
+void activateAlarmBuzzer() {
+  Serial.println("ALARM BUZZER ACTIVATED!");
+  // Buzzer nhấp nháy khi có cảnh báo
+  for(int i = 0; i < 10; i++) {
+    digitalWrite(BUZZER_PIN, HIGH);
+    delay(500);
+    digitalWrite(BUZZER_PIN, LOW);
+    delay(500);
+  }
+}
+
+void testBuzzer() {
+  Serial.println("TESTING BUZZER");
+  // Buzzer kêu 3 tiếng ngắn
+  for(int i = 0; i < 3; i++) {
+    digitalWrite(BUZZER_PIN, HIGH);
+    delay(200);
+    digitalWrite(BUZZER_PIN, LOW);
+    delay(200);
+  }
+}
+
+void processLEDCommand(String command) {
+  Serial.println("Processing LED command: " + command);
+  
+  if (command == "ON" || command == "on" || command == "1") {
+    setLED(true);
+  } else if (command == "OFF" || command == "off" || command == "0") {
+    setLED(false);
+  } else if (command == "TOGGLE" || command == "toggle") {
+    setLED(!ledState);
+  } else if (command.indexOf("{") >= 0) {
+    if (command.indexOf("\"led\":true") >= 0) {
+      setLED(true);
+    } else if (command.indexOf("\"led\":false") >= 0) {
+      setLED(false);
+    }
+  }
+}
+
+void processFanCommand(String command) {
+  Serial.println("Processing Fan command: " + command);
+  
+  if (command == "ON" || command == "on" || command == "1") {
+    setFan(true);
+  } else if (command == "OFF" || command == "off" || command == "0") {
+    setFan(false);
+  } else if (command == "TOGGLE" || command == "toggle") {
+    setFan(!fanState);
+  } else if (command.indexOf("{") >= 0) {
+    if (command.indexOf("\"fan\":true") >= 0) {
+      setFan(true);
+    } else if (command.indexOf("\"fan\":false") >= 0) {
+      setFan(false);
+    }
+  }
+}
+
+void processPumpCommand(String command) {
+  Serial.println("Processing Pump command: " + command);
+  
+  if (command == "ON" || command == "on" || command == "1") {
+    setPump(true);
+  } else if (command == "OFF" || command == "off" || command == "0") {
+    setPump(false);
+  } else if (command == "TOGGLE" || command == "toggle") {
+    setPump(!pumpState);
+  } else if (command.indexOf("{") >= 0) {
+    if (command.indexOf("\"pump\":true") >= 0) {
+      setPump(true);
+    } else if (command.indexOf("\"pump\":false") >= 0) {
+      setPump(false);
+    }
+  }
+}
+
+void setLED(bool state) {
+  ledState = state;
+  digitalWrite(LED_PIN, state ? HIGH : LOW);
+  Serial.println("LED: " + String(state ? "ON" : "OFF"));
+  sendDeviceStatus();
+  publishDeviceState();
+}
+
+void setFan(bool state) {
+  fanState = state;
+  // RELAY: LOW = ON, HIGH = OFF
+  digitalWrite(FAN_PIN, state ? HIGH : LOW);
+  Serial.println("Fan: " + String(state ? "ON" : "OFF"));
+  sendDeviceStatus();
+  publishDeviceState();
+}
+
+void setPump(bool state) {
+  pumpState = state;
+  // RELAY: LOW = ON, HIGH = OFF
+  digitalWrite(PUMP_PIN, state ? LOW : HIGH);
+  Serial.println("Pump: " + String(state ? "ON" : "OFF"));
+  sendDeviceStatus();
+  publishDeviceState();
+}
+
+void sendDeviceStatus() {
+  String statusMsg = "{";
+  statusMsg += "\"led\":" + String(ledState ? "true" : "false");
+  statusMsg += ",\"fan\":" + String(fanState ? "true" : "false");
+  statusMsg += ",\"pump\":" + String(pumpState ? "true" : "false");
+  statusMsg += ",\"buzzer\":" + String(buzzerState ? "true" : "false");
+  statusMsg += ",\"fire_alarm\":" + String(fireAlarmActive ? "true" : "false");
+  statusMsg += ",\"gas_alarm\":" + String(gasAlarmActive ? "true" : "false");
+  statusMsg += ",\"timestamp\":\"" + String(millis()) + "\"";
+  statusMsg += "}";
+  
+  client.publish(topic_device_status, statusMsg.c_str());
+  Serial.println("Sent device status: " + statusMsg);
+}
+
+void publishDeviceState() {
+  String stateMsg = "{";
+  stateMsg += "\"led\":" + String(ledState ? "true" : "false");
+  stateMsg += ",\"fan\":" + String(fanState ? "true" : "false");
+  stateMsg += ",\"pump\":" + String(pumpState ? "true" : "false");
+  stateMsg += ",\"buzzer\":" + String(buzzerState ? "true" : "false");
+  stateMsg += "}";
+  
+  client.publish(topic_device_states, stateMsg.c_str());
+  Serial.println("Published device states: " + stateMsg);
+}
+
+void sendSensorData() {
+  // Đọc dữ liệu từ cảm biến thực tế
+  readDHTSensor();
+  readGasSensor();
+  
+  // Kiểm tra cảnh báo
+  checkFireAlarm(temperature);
+  
+  String sensorMsg = "{";
+  sensorMsg += "\"temperature\":" + String(temperature, 1);
+  sensorMsg += ",\"humidity\":" + String(humidity, 1);
+  sensorMsg += ",\"gas_level\":" + String(gasValue);
+  sensorMsg += ",\"light\":" + String(ledState ? "true" : "false");
+  sensorMsg += ",\"fan\":" + String(fanState ? "true" : "false");
+  sensorMsg += ",\"pump\":" + String(pumpState ? "true" : "false");
+  sensorMsg += ",\"buzzer\":" + String(buzzerState ? "true" : "false");
+  sensorMsg += ",\"fire_alarm\":" + String(fireAlarmActive ? "true" : "false");
+  sensorMsg += ",\"gas_alarm\":" + String(gasAlarmActive ? "true" : "false");
+  sensorMsg += ",\"timestamp\":\"" + String(millis()) + "\"";
+  sensorMsg += "}";
+  
+  client.publish(topic_sensors, sensorMsg.c_str());
+  Serial.println("Sent REAL sensor data to topic PBL3: " + sensorMsg);
+}
+
+void loop() {
+  // Keep MQTT connection alive
+  if (!client.connected()) {
+    connectToMQTT();
+  }
+  client.loop();
+  
+  // Send sensor data every 5 seconds
+  static unsigned long lastSensorMsg = 0;
+  unsigned long now = millis();
+  
+  if (now - lastSensorMsg > 5000) {
+    lastSensorMsg = now;
+    sendSensorData();
+  }
+  
+  // Đọc cảm biến mỗi 2 giây (chỉ đọc, không gửi)
+  if (now - lastSensorRead > sensorInterval) {
+    lastSensorRead = now;
+    readDHTSensor();
+    readGasSensor();
+  }
+  
+  // Nếu có cảnh báo cháy hoặc khí gas, buzzer nhấp nháy
+  if ((fireAlarmActive || gasAlarmActive) && buzzerState) {
+    digitalWrite(BUZZER_PIN, !digitalRead(BUZZER_PIN));
+    delay(500);
+  }
+}
