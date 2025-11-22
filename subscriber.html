@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống Điều Khiển Trang Trại Bò Thông Minh</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <link rel="stylesheet" href="subscriber.css">
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="farm-logo">
+                    <div class="cow-icon">🐮</div>
+                    <h1>HỆ THỐNG ĐIỀU KHIỂN<br>TRANG TRẠI BÒ THÔNG MINH</h1>
+                </div>
+                <div class="connection-status" id="connectionStatus">
+                    <div class="status-indicator"></div>
+                    <span>ĐANG KẾT NỐI...</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Topic Configuration -->
+        <div class="config-section">
+            <div class="config-card">
+                <h3>⚙️ CẤU HÌNH KẾT NỐI MQTT</h3>
+                <div class="config-row">
+                    <input
+                        type="text"
+                        id="topic"
+                        placeholder="Nhập topic MQTT (ví dụ: PBL3)"
+                        value="PBL3"
+                    />
+                    <button id="subscribeBtn">Theo dõi</button>
+                    <button id="unsubscribeBtn">Dừng theo dõi</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Dashboard - Giám sát, Điều khiển và Trạng thái -->
+        <div class="status-grid">
+            <!-- Giám sát Môi trường -->
+            <div class="status-card temperature-card">
+                <div class="card-header">
+                    <h3>🌡️ NHIỆT ĐỘ</h3>
+                    <div class="gauge">
+                        <div class="gauge-fill" id="tempGauge"></div>
+                        <div class="gauge-value" id="temperature">-- °C</div>
+                    </div>
+                    <div class="sensor-info">Cảm biến DHT22 - Cập nhật thời gian thực</div>
+                    <div class="notification-display" id="temperatureNotification">
+                        Đang chờ dữ liệu từ cảm biến...
+                    </div>
+                </div>
+            </div>
+
+            <div class="status-card humidity-card">
+                <div class="card-header">
+                    <h3>💧 ĐỘ ẨM</h3>
+                    <div class="gauge">
+                        <div class="gauge-fill" id="humGauge"></div>
+                        <div class="gauge-value" id="humidity">-- %</div>
+                    </div>
+                    <div class="sensor-info">Cảm biến DHT22 - Cập nhật thời gian thực</div>
+                </div>
+            </div>
+
+            <div class="status-card gas-alarm-card">
+                <div class="card-header">
+                    <h3>⚠️ KHÍ GAS</h3>
+                    <div class="alarm-status" id="gasAlarmStatus">
+                        <div class="alarm-indicator" id="gasAlarmIndicator">AN TOÀN</div>
+                        <div class="gas-level">
+                            <div class="gauge">
+                                <div class="gauge-fill" id="gasGauge"></div>
+                                <div class="gauge-value" id="gasLevel">--</div>
+                            </div>
+                            <div class="gas-label">Cảm biến MQ - Cập nhật thời gian thực</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Trạng thái Thiết bị -->
+            <div class="status-card led-card">
+                <div class="card-header">
+                    <h3>💡 ĐÈN CHIẾU SÁNG</h3>
+                    <div class="device-status">
+                        <div class="led-display" id="ledStatus">TẮT</div>
+                        <div class="device-info">Đèn chiếu sáng khu vực chuồng trại</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="status-card fan-card">
+                <div class="card-header">
+                    <h3>🌀 QUẠT THÔNG GIÓ</h3>
+                    <div class="device-status">
+                        <div class="fan-display" id="fanStatus">TẮT</div>
+                        <div class="auto-status" id="fanAutoStatus"></div>
+                        <div class="device-info">Tự động bật khi nhiệt độ > 40°C</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="status-card pump-card">
+                <div class="card-header">
+                    <h3>🚰 BƠM NƯỚC UỐNG</h3>
+                    <div class="device-status">
+                        <div class="pump-display" id="pumpStatus">TẮT</div>
+                        <div class="auto-status" id="pumpAutoStatus"></div>
+                        <div class="device-info">Tự động bật khi phát hiện khí gas</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Điều khiển Thiết bị -->
+            <div class="status-card control-card">
+                <div class="card-header">
+                    <h3>🎛️ ĐIỀU KHIỂN THIẾT BỊ</h3>
+
+                    <!-- Hiển thị trạng thái thời gian thực -->
+                    <div class="real-time-status">
+                        <h4>TRẠNG THÁI THỜI GIAN THỰC</h4>
+                        <div class="status-indicators">
+                            <div class="status-item">
+                                <span class="status-label">💡 Đèn:</span>
+                                <span class="status-value" id="ledRealTime">TẮT</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">🌀 Quạt:</span>
+                                <span class="status-value" id="fanRealTime">TẮT</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">🚰 Bơm:</span>
+                                <span class="status-value" id="pumpRealTime">TẮT</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">🔊 Còi:</span>
+                                <span class="status-value" id="buzzerRealTime">TẮT</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="control-switches">
+                        <div class="switch-group">
+                            <label>💡 Đèn chiếu sáng</label>
+                            <label class="switch">
+                                <input type="checkbox" id="lightSwitch" />
+                                <span class="slider round"></span>
+                            </label>
+                        </div>
+                        <div class="switch-group">
+                            <label>🌀 Quạt thông gió</label>
+                            <label class="switch">
+                                <input type="checkbox" id="fanSwitch" />
+                                <span class="slider round"></span>
+                            </label>
+                        </div>
+                        <div class="switch-group">
+                            <label>🚰 Bơm nước uống</label>
+                            <label class="switch">
+                                <input type="checkbox" id="pumpSwitch" />
+                                <span class="slider round"></span>
+                            </label>
+                        </div>
+                        <div class="switch-group">
+                            <label>🔊 Còi báo động</label>
+                            <label class="switch">
+                                <input type="checkbox" id="buzzerSwitch" />
+                                <span class="slider round"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Nút điều khiển nhanh -->
+                    <div class="quick-controls">
+                        <button class="control-btn all-on" id="allOnBtn">BẬT TẤT CẢ</button>
+                        <button class="control-btn all-off" id="allOffBtn">TẮT TẤT CẢ</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hệ thống Cảnh báo -->
+            <div class="status-card fire-alarm-card">
+                <div class="card-header">
+                    <h3>🚨 HỆ THỐNG CẢNH BÁO TỰ ĐỘNG</h3>
+                    <div class="alarm-status" id="alarmStatus">
+                        <div class="alarm-indicator" id="alarmIndicator">BÌNH THƯỜNG</div>
+                        <div class="alarm-info">
+                            <p>• Tự động bật QUẠT khi nhiệt độ > 40°C</p>
+                            <p>• Tự động bật BƠM + CÒI khi có khí gas</p>
+                            <p>• Cảnh báo khi phát hiện nhiệt độ nguy hiểm</p>
+                        </div>
+                        <div class="alarm-buttons">
+                            <button class="test-alarm-btn" id="testAlarmBtn">Kiểm tra còi</button>
+                            <button class="silence-alarm-btn" id="silenceAlarmBtn">Tắt âm thanh</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Biểu đồ theo dõi -->
+        <div class="charts-section">
+            <div class="chart-card">
+                <h3>📈 DIỄN BIẾN NHIỆT ĐỘ THEO THỜI GIAN THỰC</h3>
+                <canvas id="temperatureChart"></canvas>
+            </div>
+            <div class="chart-card">
+                <h3>📊 DIỄN BIẾN ĐỘ ẨM THEO THỜI GIAN THỰC</h3>
+                <canvas id="humidityChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Lịch sử thông báo -->
+        <div class="history-section">
+            <div class="history-card">
+                <h3>📝 NHẬT KÝ HỆ THỐNG THỜI GIAN THỰC</h3>
+                <div class="message-list" id="messageHistory">
+                    <div class="message-item">
+                        <span class="timestamp" id="currentTime">--:--:-- --/--/----</span>
+                        <span class="message">Hệ thống điều khiển trang trại bò đã khởi động. Đang kết nối cảm biến...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Thông báo phản hồi -->
+    <div class="control-feedback" id="controlFeedback"></div>
+
+    <script src="subscriber.js"></script>
+</body>
+</html>
