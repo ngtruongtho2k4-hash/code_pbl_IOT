@@ -1,0 +1,1073 @@
+/* Reset and Base Styles */
+*,
+*:before,
+*:after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #1a472a 0%, #2e8b57 100%);
+  color: #1a472a;
+  min-height: 100vh;
+  line-height: 1.6;
+}
+
+/* Dashboard Layout */
+.dashboard {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px;
+  display: grid;
+  gap: 20px;
+}
+
+/* Header */
+.header {
+  background: linear-gradient(135deg, #32cd32 0%, #228b22 100%);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  padding: 20px 30px;
+  border: 3px solid #2e8b57;
+  box-shadow: 0 10px 30px rgba(46, 139, 87, 0.3);
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.farm-logo {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.cow-icon {
+  font-size: 3rem;
+  animation: cow-bounce 3s infinite;
+}
+
+@keyframes cow-bounce {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  25% { transform: translateY(-5px) rotate(5deg); }
+  75% { transform: translateY(-3px) rotate(-3deg); }
+}
+
+.header h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1a472a;
+  text-shadow: 2px 2px 4px rgba(255, 255, 255, 0.5);
+  line-height: 1.3;
+}
+
+.connection-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 25px;
+  border: 2px solid #2e8b57;
+  font-weight: 600;
+  color: #1a472a;
+}
+
+.status-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #f44336;
+  animation: pulse 2s infinite;
+}
+
+.status-indicator.connected {
+  background: #4caf50;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Section Titles */
+.section-title {
+  grid-column: 1 / -1;
+  text-align: center;
+  margin: 20px 0 10px;
+  padding: 15px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 15px;
+  border: 2px dashed #32cd32;
+}
+
+.section-title h2 {
+  font-size: 1.5rem;
+  color: #ffffff;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.3);
+  margin: 0;
+}
+
+/* Configuration Section */
+.config-section {
+  grid-column: 1 / -1;
+}
+
+.config-card {
+  background: linear-gradient(135deg, #e8f5e9 0%, #d0e6d0 100%);
+  backdrop-filter: blur(10px);
+  border-radius: 15px;
+  padding: 25px;
+  border: 2px solid #32cd32;
+  box-shadow: 0 5px 15px rgba(50, 205, 50, 0.2);
+}
+
+.config-card h3 {
+  margin-bottom: 20px;
+  font-size: 1.5rem;
+  color: #1a472a;
+  text-align: center;
+}
+
+.config-row {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.config-row input {
+  flex: 1;
+  min-width: 300px;
+  padding: 15px 20px;
+  border: none;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #1a472a;
+  font-size: 1rem;
+  border: 2px solid #32cd32;
+}
+
+.config-row input::placeholder {
+  color: #228b22;
+}
+
+.config-row button {
+  padding: 15px 25px;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 120px;
+}
+
+.config-row button:nth-of-type(1) {
+  background: linear-gradient(45deg, #4caf50, #45a049);
+  color: white;
+}
+
+.config-row button:nth-of-type(2) {
+  background: linear-gradient(45deg, #f44336, #d32f2f);
+  color: white;
+}
+
+.config-row button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.config-row button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.config-row button:disabled:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+/* Status Grid - Bố cục mới */
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+/* Các card giám sát môi trường - 2 cột trên desktop */
+.status-grid .temperature-card,
+.status-grid .humidity-card,
+.status-grid .gas-alarm-card,
+.status-grid .notification-card {
+  grid-column: span 1;
+}
+
+/* Card điều khiển và cảnh báo - chiếm 2 cột trên desktop */
+.status-grid .control-card,
+.status-grid .fire-alarm-card {
+  grid-column: span 2;
+}
+
+.status-card {
+  background: linear-gradient(135deg, #f1f8e9 0%, #e8f5e9 100%);
+  backdrop-filter: blur(10px);
+  border-radius: 15px;
+  padding: 25px;
+  border: 2px solid #c5e1a5;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 5px 15px rgba(50, 205, 50, 0.1);
+  height: fit-content;
+}
+
+.status-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 30px rgba(50, 205, 50, 0.2);
+  border-color: #32cd32;
+}
+
+.status-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #4caf50, #2196f3);
+}
+
+.temperature-card::before {
+  background: linear-gradient(90deg, #ff6b6b, #ffa726);
+}
+
+.humidity-card::before {
+  background: linear-gradient(90deg, #4fc3f7, #29b6f6);
+}
+
+.led-card::before {
+  background: linear-gradient(90deg, #ffd700, #ffa500);
+}
+
+.fan-card::before {
+  background: linear-gradient(90deg, #9c27b0, #e91e63);
+}
+
+.pump-card::before {
+  background: linear-gradient(90deg, #607d8b, #795548);
+}
+
+.control-card::before {
+  background: linear-gradient(90deg, #4caf50, #32cd32);
+}
+
+.fire-alarm-card::before {
+  background: linear-gradient(90deg, #ff4444, #ff8800, #ff4444);
+  animation: alarm-pulse 2s infinite;
+}
+
+.notification-card::before {
+  background: linear-gradient(90deg, #66bb6a, #4caf50, #2e7d32);
+}
+
+.gas-alarm-card::before {
+  background: linear-gradient(90deg, #ff9800, #ff5722);
+}
+
+@keyframes alarm-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.card-header h3 {
+  font-size: 1.3rem;
+  margin-bottom: 20px;
+  color: #1a472a;
+  font-weight: 600;
+  text-align: center;
+}
+
+/* Real-time Status Indicators */
+.real-time-status {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 10px;
+  padding: 15px;
+  margin-bottom: 20px;
+  border: 1px solid #32cd32;
+}
+
+.status-indicators {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.status-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.status-label {
+  font-weight: 600;
+  color: #1a472a;
+}
+
+.status-value {
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: #f44336;
+  color: white;
+  font-size: 0.8rem;
+}
+
+.status-value.on {
+  background: #4caf50;
+}
+
+/* Device Status Styles */
+.device-status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.device-info {
+  text-align: center;
+  font-size: 0.8rem;
+  color: #228b22;
+  font-style: italic;
+  margin-top: 10px;
+}
+
+/* Quick Controls */
+.quick-controls {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.control-btn {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+}
+
+.all-on {
+  background: linear-gradient(45deg, #4caf50, #45a049);
+  color: white;
+}
+
+.all-off {
+  background: linear-gradient(45deg, #f44336, #d32f2f);
+  color: white;
+}
+
+.control-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+/* Sensor Info */
+.sensor-info {
+  text-align: center;
+  margin-top: 15px;
+  font-size: 0.8rem;
+  color: #228b22;
+  font-style: italic;
+}
+
+/* Auto Status */
+.auto-status {
+  text-align: center;
+  margin-top: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 5px;
+  background: rgba(76, 175, 80, 0.1);
+  color: #2e7d32;
+}
+
+.auto-status.auto-on {
+  background: rgba(255, 152, 0, 0.1);
+  color: #ef6c00;
+}
+
+/* Gauge Styles */
+.gauge {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, #e0e0e0 0deg, #e0e0e0 360deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  border: 3px solid #32cd32;
+}
+
+.gauge-fill {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, #4caf50 0deg, #4caf50 0deg, #e0e0e0 0deg);
+  transition: all 0.5s ease;
+}
+
+.temperature-card .gauge-fill {
+  background: conic-gradient(from 0deg, #ff6b6b 0deg, #ff6b6b 0deg, #e0e0e0 0deg);
+}
+
+.humidity-card .gauge-fill {
+  background: conic-gradient(from 0deg, #4fc3f7 0deg, #4fc3f7 0deg, #e0e0e0 0deg);
+}
+
+.gas-alarm-card .gauge-fill {
+  background: conic-gradient(from 0deg, #ff9800 0deg, #ff9800 0deg, #e0e0e0 0deg);
+}
+
+.gauge-value {
+  position: relative;
+  z-index: 2;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #1a472a;
+  text-align: center;
+}
+
+/* Device Status Displays */
+.led-display,
+.fan-display,
+.pump-display {
+  font-size: 1.5rem;
+  font-weight: 700;
+  text-align: center;
+  padding: 20px;
+  border-radius: 10px;
+  background: rgba(244, 67, 54, 0.1);
+  border: 2px solid #f44336;
+  color: #f44336;
+  transition: all 0.3s ease;
+  min-width: 120px;
+}
+
+.led-display.on,
+.fan-display.on,
+.pump-display.on {
+  background: rgba(76, 175, 80, 0.2);
+  border-color: #4caf50;
+  color: #2e7d32;
+}
+
+/* Fire Alarm System Styles */
+.alarm-status {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.alarm-indicator {
+  font-size: 1.3rem;
+  font-weight: 700;
+  text-align: center;
+  padding: 15px;
+  border-radius: 10px;
+  background: rgba(76, 175, 80, 0.2);
+  border: 2px solid #4caf50;
+  color: #2e7d32;
+  transition: all 0.3s ease;
+}
+
+.alarm-indicator.alert {
+  background: rgba(244, 67, 54, 0.3);
+  border-color: #f44336;
+  color: #d32f2f;
+  animation: alarm-flash 1s infinite;
+}
+
+.gas-alarm-card .alarm-indicator.alert {
+  background: rgba(255, 87, 34, 0.3);
+  border-color: #ff5722;
+  color: #d84315;
+  animation: gas-alarm-flash 1s infinite;
+}
+
+@keyframes alarm-flash {
+  0%, 100% { 
+    background: rgba(244, 67, 54, 0.3);
+    border-color: #f44336;
+  }
+  50% { 
+    background: rgba(244, 67, 54, 0.6);
+    border-color: #ff0000;
+  }
+}
+
+@keyframes gas-alarm-flash {
+  0%, 100% { 
+    background: rgba(255, 87, 34, 0.3);
+    border-color: #ff5722;
+  }
+  50% { 
+    background: rgba(255, 87, 34, 0.6);
+    border-color: #ff0000;
+  }
+}
+
+.alarm-control {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 10px;
+}
+
+.alarm-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.test-alarm-btn, .silence-alarm-btn {
+  padding: 12px 15px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+}
+
+.test-alarm-btn {
+  background: linear-gradient(45deg, #ff9800, #f57c00);
+  color: white;
+}
+
+.silence-alarm-btn {
+  background: linear-gradient(45deg, #607d8b, #455a64);
+  color: white;
+}
+
+.test-alarm-btn:hover, .silence-alarm-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.test-alarm-btn:active, .silence-alarm-btn:active {
+  transform: translateY(0);
+}
+
+/* Gas Level Styles */
+.gas-level {
+  text-align: center;
+  margin-top: 15px;
+}
+
+.gas-label {
+  margin-top: 10px;
+  font-weight: 600;
+  color: #1a472a;
+  font-size: 0.9rem;
+}
+
+.gas-alarm-card .gauge {
+  width: 100px;
+  height: 100px;
+  margin: 0 auto;
+}
+
+/* Temperature Notification Styles */
+.notification-display {
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-align: center;
+  padding: 20px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.5);
+  border: 2px solid #c5e1a5;
+  color: #1a472a;
+  transition: all 0.3s ease;
+  min-height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.5;
+  word-wrap: break-word;
+}
+
+/* Notification states based on temperature */
+.notification-cold {
+  background: rgba(79, 195, 247, 0.3) !important;
+  border-color: #4fc3f7 !important;
+  color: #0277bd !important;
+}
+
+.notification-cool {
+  background: rgba(102, 187, 106, 0.3) !important;
+  border-color: #66bb6a !important;
+  color: #2e7d32 !important;
+}
+
+.notification-warm {
+  background: rgba(255, 183, 77, 0.3) !important;
+  border-color: #ffb74d !important;
+  color: #ef6c00 !important;
+}
+
+.notification-hot {
+  background: rgba(255, 112, 67, 0.3) !important;
+  border-color: #ff7043 !important;
+  color: #d84315 !important;
+}
+
+/* Control Switches */
+.control-switches {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.switch-group {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+}
+
+.switch-group label:first-child {
+  font-weight: 600;
+  color: #1a472a;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 34px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: 0.4s;
+  border-radius: 34px;
+  border: 2px solid #32cd32;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 26px;
+  width: 26px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  transition: 0.4s;
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background-color: #4caf50;
+}
+
+input:focus + .slider {
+  box-shadow: 0 0 1px #4caf50;
+}
+
+input:checked + .slider:before {
+  transform: translateX(26px);
+}
+
+/* Charts Section */
+.charts-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+  gap: 20px;
+}
+
+.chart-card {
+  background: linear-gradient(135deg, #e8f5e9 0%, #d0e6d0 100%);
+  backdrop-filter: blur(10px);
+  border-radius: 15px;
+  padding: 25px;
+  border: 2px solid #32cd32;
+  box-shadow: 0 5px 15px rgba(50, 205, 50, 0.2);
+}
+
+.chart-card h3 {
+  margin-bottom: 20px;
+  font-size: 1.3rem;
+  color: #1a472a;
+  font-weight: 600;
+  text-align: center;
+}
+
+.chart-card canvas {
+  max-height: 300px;
+  width: 100% !important;
+}
+
+/* History Section */
+.history-section {
+  grid-column: 1 / -1;
+}
+
+.history-card {
+  background: linear-gradient(135deg, #e8f5e9 0%, #d0e6d0 100%);
+  backdrop-filter: blur(10px);
+  border-radius: 15px;
+  padding: 25px;
+  border: 2px solid #32cd32;
+  box-shadow: 0 5px 15px rgba(50, 205, 50, 0.2);
+}
+
+.message-list {
+  max-height: 300px;
+  overflow-y: auto;
+  padding-right: 10px;
+}
+
+.message-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 15px;
+  margin-bottom: 10px;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 10px;
+  border-left: 4px solid #4caf50;
+  transition: all 0.3s ease;
+  gap: 15px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.message-item:hover {
+  background: rgba(255, 255, 255, 0.7);
+  transform: translateX(5px);
+}
+
+.timestamp {
+  font-size: 0.9rem;
+  color: #2e8b57;
+  font-weight: 500;
+  min-width: 120px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.message {
+  font-size: 1rem;
+  color: #1a472a;
+  font-weight: 500;
+  flex: 1;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  line-height: 1.4;
+}
+
+/* Scrollbar Styling */
+.message-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.message-list::-webkit-scrollbar-track {
+  background: rgba(50, 205, 50, 0.1);
+  border-radius: 4px;
+}
+
+.message-list::-webkit-scrollbar-thumb {
+  background: #32cd32;
+  border-radius: 4px;
+}
+
+.message-list::-webkit-scrollbar-thumb:hover {
+  background: #228b22;
+}
+
+/* Control Feedback */
+.control-feedback {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 15px 20px;
+  border-radius: 10px;
+  background: #4caf50;
+  color: white;
+  font-weight: 600;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  transform: translateX(150%);
+  transition: transform 0.3s ease;
+  z-index: 1000;
+}
+
+.control-feedback.show {
+  transform: translateX(0);
+}
+
+.control-feedback.error {
+  background: #f44336;
+}
+
+/* Loading States */
+.loading {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.loading::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.5);
+  z-index: 10;
+  border-radius: inherit;
+}
+
+.loading::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  margin: -10px 0 0 -10px;
+  border: 2px solid #32cd32;
+  border-top: 2px solid transparent;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  z-index: 11;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .dashboard {
+    padding: 10px;
+  }
+
+  .header-content {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .header h1 {
+    font-size: 1.5rem;
+  }
+
+  .cow-icon {
+    font-size: 2.5rem;
+  }
+
+  .config-row {
+    flex-direction: column;
+  }
+
+  .config-row input {
+    min-width: 100%;
+  }
+
+  .status-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .status-grid .control-card,
+  .status-grid .fire-alarm-card {
+    grid-column: span 1;
+  }
+
+  .charts-section {
+    grid-template-columns: 1fr;
+  }
+
+  .chart-card canvas {
+    max-height: 250px;
+  }
+
+  .alarm-indicator {
+    font-size: 1.1rem;
+    padding: 12px;
+  }
+  
+  .test-alarm-btn, .silence-alarm-btn {
+    padding: 10px 12px;
+    font-size: 0.8rem;
+  }
+  
+  .notification-display {
+    font-size: 1rem;
+    padding: 15px 10px;
+    min-height: 80px;
+  }
+
+  .gas-alarm-card .gauge {
+    width: 80px;
+    height: 80px;
+  }
+
+  .status-indicators {
+    grid-template-columns: 1fr;
+  }
+  
+  .quick-controls {
+    flex-direction: column;
+  }
+
+  .switch-group {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .header h1 {
+    font-size: 1.3rem;
+  }
+
+  .status-card {
+    padding: 20px;
+  }
+
+  .gauge {
+    width: 100px;
+    height: 100px;
+  }
+
+  .gauge-value {
+    font-size: 1rem;
+  }
+
+  .alarm-indicator {
+    font-size: 1rem;
+    padding: 10px;
+  }
+  
+  .notification-display {
+    font-size: 0.9rem;
+    padding: 15px 10px;
+    min-height: 80px;
+  }
+
+  .gas-alarm-card .gauge {
+    width: 70px;
+    height: 70px;
+  }
+
+  .control-feedback {
+    top: 10px;
+    right: 10px;
+    left: 10px;
+    text-align: center;
+  }
+
+  .section-title h2 {
+    font-size: 1.3rem;
+  }
+}
+
+/* Print Styles */
+@media print {
+  .header, .config-section, .control-card, .quick-controls {
+    display: none;
+  }
+  
+  .status-card {
+    break-inside: avoid;
+    box-shadow: none;
+    border: 1px solid #ccc;
+  }
+  
+  body {
+    background: white;
+    color: black;
+  }
+}
+
+/* High Contrast Mode Support */
+@media (prefers-contrast: high) {
+  .status-card {
+    border: 2px solid #000;
+  }
+  
+  .gauge {
+    border: 2px solid #000;
+  }
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  
+  .cow-icon {
+    animation: none;
+  }
+  
+  .status-indicator {
+    animation: none;
+  }
+  
+  .alarm-indicator.alert {
+    animation: none;
+  }
+}
